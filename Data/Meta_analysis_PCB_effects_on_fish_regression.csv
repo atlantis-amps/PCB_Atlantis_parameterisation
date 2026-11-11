@@ -1,0 +1,7 @@
+Dataset,r2,intercept,slope
+Mortality,0.46,18.94,21.15
+Quintile Mortality,0.79,17.02,22.1
+Growth,0.18,16.76,7.58
+Quintile Growth,0.8,15,9.38
+Reproduction,0.52,40.88,9.2
+Quintile Reproduction,0.85,38.48,11.03

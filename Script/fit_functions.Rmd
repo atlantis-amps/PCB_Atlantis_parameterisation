@@ -1,0 +1,311 @@
+---
+title: "PCB meta analysis data to Atlantis format"
+output:
+  html_document:
+    df_print: paged
+date: "2024-12-18"
+---
+
+```{r setup, include=FALSE}
+library(here)
+library(ggplot2)
+library(tidyverse)
+```
+# Functions defining from Raisha paper (Lovindeer et al. in prep)
+### Equation 10
+```{r}
+M_contam_daily <- function(C_bio, LC50, beta_LC, TLC50 = 1){ #in days for parameter estimation, in seconds in Atlantis
+  return(log(1+(C_bio/LC50)^beta_LC)/TLC50)
+}
+```
+
+### Equation 11
+```{r}
+k_growth <- function(C_bio, EC50, beta_EC){
+  return(1/(1+C_bio/EC50)^beta_EC)
+}
+```
+
+### Equation 12
+```{r}
+k_growth2 <- function(C_bio, k, c_range, c_mid){
+  return(1-k/(1+exp(c_range*(c_mid-C_bio))))
+}
+```
+
+### Equation 13
+```{r}
+k_repro <- function(C_bio, w_r, c_chronic){
+  return(1-(w_r*(C_bio-c_chronic)))
+}
+```
+
+# Import data from Berninger & Tillitt 2018 (Table 5)
+Paper DOI: https://doi.org/10.1002/etc.4335
+
+### Row data
+
+```{r}
+# Table SI 8
+data_regression <- read.csv(here("Data/Meta_analysis_PCB_effects_on_fish_regression.csv"))
+concentration = 10^(seq(-4,5,0.01)) #ug.g-1 (unit of the relationship in the paper)
+
+# % reduction growth
+growth = data_regression$intercept[3] + data_regression$slope[3]*log10(concentration)
+growth[growth<0]<-0
+growth[growth>100]<-100
+
+# % reduction reproduction
+reproduction = data_regression$intercept[5] + data_regression$slope[5]*log10(concentration)
+reproduction[reproduction<0]<-0
+reproduction[reproduction>100]<-100
+
+# % population facing mortality
+mortality = data_regression$intercept[1] + data_regression$slope[1]*log10(concentration)
+mortality[mortality<0]<-0
+mortality[mortality>100]<-100
+
+
+dataset <- data.frame(growth = 1-growth/100, 
+                      reproduction = 1-reproduction/100, 
+                      mortality = mortality/100,  # ATTENTION: it is not a rate 
+                      Concentration = concentration)
+
+
+data_long <- dataset %>%
+  tidyr::pivot_longer(cols = c(mortality, reproduction, growth),
+                      names_to = "Trait",
+                      values_to = "Value")
+
+
+ggplot(data_long, aes(x = log10(Concentration), y = Value, color = Trait)) +
+  geom_line(linewidth = 1.5) +
+  geom_vline(xintercept = -1, linetype = "dashed", color = "gray50") +
+  scale_color_manual(values = c("mortality" = "black", "growth" = "cyan2", "reproduction" = "orange2")) +
+  labs(    x = "PCB Concentration (ug.g-1)",
+    y = "Reduction factor",
+    color = "Trait",
+    title = "PCB concentration and its effect on fish traits"  ) +
+   scale_x_continuous(breaks=c(-4:4), labels=c(0.0001,0.001,0.01,0.1,1,10,100,1000, 10000)) +
+  
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "top",
+    legend.title = element_text(face = "bold"),
+    plot.title = element_text(hjust = 0.5)  )
+```
+```{r}
+
+concentration <- concentration /1000 * 1000000 #(from ug to mg, from .g to m3, assuming a m3 is water) 
+dataset$Concentration <- dataset$Concentration/1000 * 1000000
+
+```
+
+
+
+
+
+# Growth
+### Fit equation 11 to data 
+```{r}
+
+{plot(log10(concentration), 1-growth/100, ylab = "k_growth", type = "l")
+lines(log10(concentration), k_growth(concentration, 0.05, 0.1), lty = 2, col = "red", lwd = 2)
+lines(log10(concentration), k_growth(concentration, 0.5, 0.05), lty = 2, col = "blue", lwd = 2)
+lines(log10(concentration), k_growth(concentration, 0.05, 0.055), lty = 2, col = "orange", lwd = 2)
+lines(log10(concentration), k_growth(concentration, 22.16034, 0.04786), lty = 2, col = "green3", lwd = 2)
+
+abline(v = -1, lty = 2)}
+
+```
+
+
+```{r}
+# Green curve
+nls(dataset$growth~k_growth(dataset$Concentration, EC50, beta_EC), data = dataset, start = c(EC50 = 0.05,  beta_EC=0.05))
+```
+
+### Fit equation 12 
+```{r}
+
+# Manual adjustement
+{plot(log10(concentration), 1-growth/100, ylab = "k_growth", type = "l", lwd = 2)
+lines(log10(concentration), k_growth2(concentration, k = 1,  0.7, 31 ), lty = 2, col = "red", lwd = 2)}
+
+# Best fit
+{plot(log10(concentration), 1-growth/100, ylab = "k_growth", type = "l", lwd = 2)
+lines(log10(concentration), k_growth2(concentration, k =  0.55,  100000, 1000 ), lty = 2, col = "green1", lwd = 2)
+lines(log10(concentration), k_growth2(concentration,k =  0.55,  3, 1 ), lty = 2, col = "blue", lwd = 2)}
+
+```
+
+The model does not converge
+```{r}
+#nls(growth~k_growth2(Concentration, k, c_range, c_mid), data = dataset, start = c(k=0.55, c_range =  5 , c_mid = 1))
+```
+
+# Reproduction
+### Fit equation 13 to data 
+```{r}
+{plot(log10(concentration), 1-reproduction/100, ylab = "k_reproduction", type = "l", ylim = c(0,1))
+  # (C_bio, w_r, c_chronic)
+lines(log10(concentration), k_repro(concentration, 0.0001, 1), lty = 2, col = "red", lwd = 2)
+lines(log10(concentration), k_repro(concentration, 0.0001, 0.01), lty = 2, col = "orange", lwd = 2)
+lines(log10(concentration), k_repro(concentration, 0.02216, 0.04786), lty = 2, col = "blue3", lwd = 2)
+lines(log10(concentration), k_repro(concentration,  8.195e-06, -5.062e+04), lty = 2, col = "green3", lwd = 2)
+
+abline(v = -1, lty = 2)}
+
+```
+
+
+The slope is "fixed". The second parameter (c_chronic) does not seem to impact a lot the curve. Green is the best curve. 
+```{r}
+nls(reproduction~k_repro(Concentration, w_r, c_chronic), data = dataset, start = c(w_r = 0.02216, c_chronic = 0.04786))
+```
+
+### Fit equation 11 to repro data as a test
+
+```{r}
+{plot(log10(concentration), 1-reproduction/100, ylab = "k_growth", type = "l", ylim = c(0,1))
+lines(log10(concentration), k_growth(concentration, 0.004, 0.01), lty = 2, col = "red", lwd = 2)
+lines(log10(concentration), k_growth(concentration, 0.004, 0.076790), lty = 2, col = "blue", lwd = 2)
+lines(log10(concentration), k_growth(concentration, 0.000427, 0.1), lty = 2, col = "orange", lwd = 2)
+lines(log10(concentration), k_growth(concentration, 0.42695, 0.076790), lty = 2, col = "green3", lwd = 2)
+
+abline(v = -1, lty = 2)}
+```
+
+Green curve = best fit. This equation works better on reproduction data.
+```{r}
+# Green curve
+nls(dataset$reproduction~k_growth(dataset$Concentration, EC50, beta_EC), data = dataset, start = c(EC50 = 0.001,   beta_EC=0.06))
+```
+
+# Mortality 
+The equation is M_contam (/day) in function of the concentration in the organism (Cbio). 
+Our data is the % of mortality on an experiment. We need to convert our data into a rate. 
+A first simple assumption is to divide the relationship by the average exposure time (88 d)?
+N(t) = N(0) * e^(-Zt)
+
+N(t) = % reduction
+N(0) = 1 (initial condition: 0% reduction)
+t = 88days (average time of the experiments)
+
+log(N(t)) = log(N(0) * e^(-Zt))
+log(N(t)) = log(N(0)) +  log(e^(-Zt))
+log(N(t)) = -Zt
+Z = -log(N(t))/t
+
+### Simple temporal assumption
+```{r}
+plot(dataset$Concentration, -log((1-dataset$mortality))/88, xlim = c(0,0.8e7))
+# Check if the calculation is exact: mortality for the highest concentration should kill the entire pop in 88days
+exp(-88*8.518798e-02) # only 0.005% survive --> ok 
+dataset$daily_mort_rate <- -log((1-dataset$mortality))/88
+
+```
+
+A more precise parameter estimation is possible using directly their row data. 
+
+
+```{r}
+# Green curve
+dataset_contam <- dataset[dataset$daily_mort_rate!=Inf,]
+
+#M_contam_daily <- function(C_bio, LC50, beta_LC)
+{plot(log10(dataset_contam$Concentration), dataset_contam$daily_mort_rate, xlab = "log10(Concentration)", ylab = "M_daily (/day)", type = "l",xlim = c(-1,7),  ylim = c(0,0.2))
+lines(log10(concentration), M_contam_daily(concentration, 1e9, 0.8), lty = 2, col = "red", lwd = 2)
+lines(log10(concentration), M_contam_daily(concentration, 1e7, 0.8), lty = 2, col = "blue", lwd = 2)
+lines(log10(concentration), M_contam_daily(concentration, 2.713e+10, 3.719e-01), lty = 2, col = "orange", lwd = 2)
+lines(log10(concentration), M_contam_daily(concentration, 1e8, 0.8), lty = 2, col = "green3", lwd = 2)
+
+abline(v = -1, lty = 2)}
+```
+
+
+```{r}
+nls(dataset_contam$daily_mort_rate~M_contam_daily(dataset_contam$Concentration, LC50, beta_LC), data = dataset_contam, start = c(LC50 = 1000000,    beta_LC=0.38))
+```
+### From raw data
+Concentration in ug.g^-1 in the data, in mg.m^3 
+m^3 of water = 1000kg =1 000 000g
+m^3 of lipid = 916kg 
+```{r}
+M_data <- read.csv(here("Data/Appendix_mortality.csv"))%>%
+  mutate(Concentration = Concentration/10^3*10^6)%>% #Conversion from paper unit to Atlantis unit
+  mutate(Daily_effect_prop = Effect_prop/Days)%>%
+  filter(Effect_prop != 1)%>%
+  mutate(Z = -log(1-Effect_prop)/Days*4)
+
+plot(log(M_data$Concentration),M_data$Daily_effect_prop)
+plot(log(M_data$Concentration),M_data$Effect_prop)
+plot(log(M_data$Concentration), M_data$Z)
+
+
+
+nls(M_data$Z~M_contam_daily(M_data$Concentration, LC50, beta_LC), data = M_data, start = c(LC50 = 2.713e+7,    beta_LC=0.38))
+
+plot(log10(M_data$Concentration), M_data$Z)
+lines(log10(concentration), M_contam_daily(concentration, 5.920e+08, 2.843e-01 ), lty = 2, col = "green3", lwd = 2)
+
+
+```
+
+
+# From response to total PCB to PCB 118
+```{r}
+# Import data without species and % PCB 118 in total PCB for the species
+
+# For now, very simple process with data visually derived from Pearce 2018, figure 4.11 (p60)
+# https://summit.sfu.ca/item/19543
+
+data_PCB118 <- data.frame(Species = c("Chinook", "Orca"),
+                          Contrib_of_tot = c(0.09, 0.05))  #TODO: replace this simplified dataset by a complete 
+                                                          #dataset per species
+
+
+
+list_param <- list() 
+for (i in 1:length(data_PCB118$Species)){
+  dataset.sp <- dataset
+  dataset.sp$concentration_PCB118 <- dataset.sp$Concentration*data_PCB118$Contrib_of_tot[i]
+  # Growth
+  mod.growth <- nls(dataset.sp$growth~k_growth(dataset.sp$concentration_PCB118, EC50, beta_EC), 
+                    data = dataset.sp, 
+                    start = c(EC50 = 0.02216*data_PCB118$Contrib_of_tot[i],   beta_EC=0.04786))
+
+
+    # Repro
+  mod.repro <- nls(dataset.sp$reproduction~k_growth(dataset.sp$concentration_PCB118, EC50, beta_EC),
+                   data = dataset.sp, 
+                   start = c(EC50 = 0.000426951*data_PCB118$Contrib_of_tot[i], beta_EC=0.07679039))
+  
+  
+  # Mortality
+  
+
+  M_data$concentration_PCB118 <- M_data$Concentration*data_PCB118$Contrib_of_tot[i]
+  mod.mortality <- nls(M_data$Z~M_contam_daily(M_data$concentration_PCB118, LC50, beta_LC), 
+                         data = M_data, 
+                         start = c(LC50 = 2.713e+7*data_PCB118$Contrib_of_tot[i],    beta_LC=0.38))
+
+  
+
+  # Save results 
+  
+  list_param[[data_PCB118$Species[i]]]$growth$EC50    <- coef(mod.growth)[1]
+  list_param[[data_PCB118$Species[i]]]$growth$beta_EC <- coef(mod.growth)[2]
+  
+  list_param[[data_PCB118$Species[i]]]$repro$EC50     <- coef(mod.repro)[1]
+  list_param[[data_PCB118$Species[i]]]$repro$beta_EC  <- coef(mod.repro)[2]
+  
+  list_param[[data_PCB118$Species[i]]]$mortality$LC50    <- coef(mod.mortality)[1]
+  list_param[[data_PCB118$Species[i]]]$mortality$beta_LC <- coef(mod.mortality)[2]
+}
+
+
+```
+
+
+
+

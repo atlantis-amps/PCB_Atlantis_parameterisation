@@ -1,0 +1,31 @@
+PCB,Common_Name,Scientific_name,Life_Stage,Temp,Saline,Days,Route,Concentration,Concentration_Code,Effect_percent,Quint,Effect_prop
+A1260,barbel,Barbus barbus,ELS,warm,fresh,75,Par,0.26,d,92%,*,0.92
+A1254,tilapia,Oreochromis niloticus,ELS,warm,fresh,15,di,0.75,fd,57%,Q1,0.57
+A1254,lake trout,Salvelinus namaycush,ELS,cold,fresh,176,aq/di,1.53,m,32%,Q1,0.32
+A1254,atlantic croaker,Micropogonias undulates,adult,warm,salt,17,di,2.1,fd,44%,Q1,0.44
+PCB-ORN,zebrafish,Danio rerio,adult,warm,fresh,91,di,2.7,m,18%,Q1,0.18
+A1254,sheepshead minnow,Cyprinodon variegates,ELS,warm,salt,28,par,5.1,m,22.00%,Q1,0.22
+A1254,sheepshead minnow,Cyprinodon variegates,ELS,warm,salt,28,aq,5.1,cf,30%,Q1,0.3
+ARO-FIS,Atlantic salmon,Salmo salar,ELS,cold,fresh,195,aq,6,m,5.80%,Q2,0.058
+PCB-BLA,mummichog,Fundulus heteroclitus,adult,warm,salt,56,di,6.65,fd,13%,Q2,0.13
+A1254,pinfish,Lagodon rhomboids,ELS,warm,salt,14,aq,14,m,66%,Q2,0.66
+PCB-BLA,mummichog,Fundulus heteroclitus,adult,warm,salt,40,inj,14.25,ip,54%,Q2,0.54
+CLO50,Eurasian minnow,Phoxinus phoxinus,adult,warm,fresh,300,di,15,m,28%,Q2,0.28
+A1254,common sole,Solea solea,ELS,cold,salt,40,aq,17.2,li,50%,Q2,0.5
+A1254,Spot,Leiostomus xanthurus,ELS,warm,salt,20,aq,46,m,51%,Q3,0.51
+A1254,brook trout,Salvelinus fontinalis,ELS,cold,fresh,21,par,77.9,m,92%,Q3,0.92
+A1016,pinfish,Lagodon rhomboides,adult,warm,salt,42,aq,106,m,47%,Q3,0.47
+A1248,fathead minnow,Pimephales promelas,ELS,warm,fresh,30,aq,120,cf,44%,Q3,0.44
+Aro-MAY,rainbow trout,Oncorhynchus mykiss,ELS,cold,fresh,90,aq,120,m,31%,Q3,0.31
+A1254,brook trout,Salvelinus fontinalis,ELS,cold,fresh,118,aq,125,m,18%,Q4,0.18
+A1248,fathead minnow,Pimephales promelas,ELS,warm,fresh,30,aq,138,cf,25%,Q4,0.25
+Clo A50,Eurasian minnow,Phoxinus phoxinus,ELS,warm,fresh,300,par,170,m,83%,Q4,0.83
+A1016,sheepshead minnow,Cyprinodon variegates,ELS,warm,salt,33,aq,200,m,82%,Q4,0.82
+Clo A50,goldfish,Carassius auratus,adult,warm,fresh,22,aq,250,m,50%,Q4,0.5
+A1260,fathead minnow,Pimephales promelas,ELS,warm,fresh,30,aq,260,cf,69%,Q4,0.69
+A1254,sheepshead minnow,Cyprinodon variegates,adult,warm,salt,28,aq,300,cf,95%,Q5,0.95
+A1016,sheepshead minnow,Cyprinodon variegates,adult,warm,salt,28,aq,365,cf,91%,Q5,0.91
+A1254,coho salmon,Oncorhynchus kisutch,ELS,cold,fresh,260,di,645,m,100%,Q5,1
+A1242,fathead minnow,Pimephales promelas,ELS,warm,fresh,240,aq,795,cf,100%,Q5,1
+A1016,sheepshead minnow,Cyprinodon variegates,ELS,warm,salt,28,aq,1100,m,88%,Q5,0.88
+A1254,fathead minnow,Pimephales promelas,ELS,warm,fresh,240,aq,2950,cf,100%,Q5,1
